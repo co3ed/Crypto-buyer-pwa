@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Buyer</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="theme-color" content="#00ccff">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #10131a;
+      color: #f5f5f5;
+      margin: 0;
+      padding: 1em;
+    }
+    h1 { text-align: center; font-size: 1.8em; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .card { background: #1e222d; padding: 1em; border-radius: 8px; margin: 0 auto 1em; max-width: 500px; }
+    input, button { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 4px; border: none; font-size: 1em; }
+    button { background: #00ccff; color: black; font-weight: bold; cursor: pointer; }
+    label { font-size: 0.9em; }
+    .emoji { font-size: 2em; text-align: center; }
+    .advice { font-size: 1.5em; text-align: center; font-weight: bold; }
+    .confidence-bar { background: #333; border-radius: 6px; overflow: hidden; height: 20px; margin-top: 10px; }
+    .confidence-fill { height: 100%; text-align: center; line-height: 20px; font-size: 12px; font-weight: bold; }
+    .alert { text-align: center; font-size: 1.4em; font-weight: bold; margin-top: 1em; }
+    .hold-sell-box { margin-top: 1.5em; padding-top: 1em; border-top: 1px solid #555; }
+    .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); }
+    .modal-content { background-color: #1e222d; color: white; margin: 10% auto; padding: 1em; border: 1px solid #888; border-radius: 10px; width: 90%; max-width: 500px; }
+    .close { float: right; font-size: 1.4em; font-weight: bold; cursor: pointer; color: #00ccff; }
+  </style>
+</head>
+<body>
+
+  <h1>Crypto Buyer</h1>
+
+  <div class="top-bar">
+    <label><input type="checkbox" id="aggressiveToggle" /> Aggressive Mode</label>
+    <button onclick="document.getElementById('modal').style.display='block'">Instructions</button>
+  </div>
+
+  <div class="card">
+    <input type="text" id="tokenInput" placeholder="BTC, ETH, etc." />
+    <button onclick="analyse()">Analyse</button>
+  </div>
+
+  <div id="result"></div>
+
+  <!-- Instructions Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('modal').style.display='none'">&times;</span>
+      <h2>How to Use Crypto Buyer</h2>
+      <p>Enter a token symbol (e.g., BTC, ETH, SUI).</p>
+      <p>Tap Analyse to get a BUY or SELL signal.</p>
+      <p>Green = Buy, Red = Sell, Gray = Hold.</p>
+      <hr>
+      <h3>Indicators</h3>
+      <p><strong>RSI:</strong> Oversold/overbought conditions.</p>
+      <p><strong>MACD:</strong> Momentum indicator.</p>
+      <p><strong>Confidence:</strong> How strong the signal is.</p>
+      <hr>
+      <h3>Aggressive Mode</h3>
+      <p>Faster signals for quick trades:</p>
+      <ul>
+        <li>Buys earlier (RSI < 45)</li>
+        <li>Sells earlier (RSI > 60)</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function getVolumeThreshold(symbol) {
+      if (["BTC", "ETH"].includes(symbol)) return 5000000000;
+      if (["XRP", "DOGE", "ADA", "SUI"].includes(symbol)) return 50000000;
+      return 1000000;
+    }
+
+    function estimateHoldTime(advice) {
+      if (advice.includes("Strong Buy")) return "6–24 hours";
+      if (advice.includes("Buy")) return "3–12 hours";
+      if (advice.includes("Hold")) return "1–3 hours";
+      if (advice.includes("Sell")) return "Exit ASAP";
+      return "N/A";
+    }
+
+    async function analyse() {
+      const token = document.getElementById("tokenInput").value.toUpperCase();
+      const symbol = token + "USDT";
+      const resultDiv = document.getElementById("result");
+      const aggressive = document.getElementById("aggressiveToggle").checked;
+
+      try {
+        const [candleRes, tickerRes] = await Promise.all([
+          fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`),
+          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+        ]);
+
+        if (!candleRes.ok || !tickerRes.ok) throw new Error("Invalid token");
+
+        const candles = await candleRes.json();
+        const ticker = await tickerRes.json();
+
+        const closes = candles.map(c => parseFloat(c[4]));
+        const period = 14;
+        let gains = 0, losses = 0;
+
+        for (let i = 1; i <= period; i++) {
+          let change = closes[i] - closes[i - 1];
+          change >= 0 ? gains += change : losses -= change;
+        }
+
+        let avgGain = gains / period;
+        let avgLoss = losses / period;
+
+        for (let i = period + 1; i < closes.length; i++) {
+          let change = closes[i] - closes[i - 1];
+          if (change >= 0) {
+            avgGain = (avgGain * (period - 1) + change) / period;
+            avgLoss = (avgLoss * (period - 1)) / period;
+          } else {
+            avgGain = (avgGain * (period - 1)) / period;
+            avgLoss = (avgLoss * (period - 1) - change) / period;
+          }
+        }
+
+        const rs = avgGain / avgLoss;
+        const rsi = 100 - (100 / (1 + rs));
+
+        const EMA = (data, p) => {
+          const k = 2 / (p + 1);
+          let ema = [data[0]];
+          for (let i = 1; i < data.length; i++) {
+            ema.push(data[i] * k + ema[i - 1] * (1 - k));
+          }
+          return ema;
+        };
+
+        const ema12 = EMA(closes, 12);
+        const ema26 = EMA(closes, 26);
+        const macdLine = ema12.map((v, i) => v - ema26[i]);
+        const signalLine = EMA(macdLine.slice(26), 9);
+        const macdHist = macdLine.at(-1) - signalLine.at(-1);
+
+        const price = parseFloat(ticker.lastPrice);
+        const change = parseFloat(ticker.priceChangePercent);
+        const volume = parseFloat(ticker.quoteVolume);
+
+        let score = 0;
+        if (change > 5) score += 3;
+        else if (change > 2) score += 2;
+        else if (change < -5) score -= 3;
+        else if (change < -2) score -= 2;
+
+        if (aggressive) {
+          if (rsi < 45) score += 2;
+          else if (rsi > 60) score -= 2;
+        } else {
+          if (rsi < 30) score += 2;
+          else if (rsi > 70) score -= 2;
+        }
+
+        if (macdHist > 0) score += 2;
+        else score -= 2;
+
+        let advice = "", emoji = "", color = "";
+        if (score >= 7) { advice = "Strong Buy"; emoji = "🟢"; color = "limegreen"; }
+        else if (score >= 4) { advice = "Buy"; emoji = "🟩"; color = "#00ffcc"; }
+        else if (score >= -3) { advice = "Hold"; emoji = "⚪"; color = "gray"; }
+        else { advice = "Sell"; emoji = "🔴"; color = "red"; }
+
+        const confidence = Math.min(Math.abs(score) * 10 + 50, 95);
+        const arrow = change > 0 ? "↑" : change < 0 ? "↓" : "";
+        const changeColor = advice.includes("Sell") ? "red" : (change > 0 ? "limegreen" : "red");
+        const volumeColor = (volume > getVolumeThreshold(token) && !advice.includes("Sell")) ? "limegreen" : "red";
+        const volumeDisplay = `$${(volume / 1e6).toFixed(1)}M`;
+
+        let alertMessage = '';
+        if (aggressive) {
+          if (rsi < 45 && macdHist > 0 && change > 0) alertMessage = `<div class="alert" style="color:limegreen;">BUY NOW</div>`;
+          else if (rsi > 60 && macdHist < 0 && change < 0) alertMessage = `<div class="alert" style="color:red;">SELL NOW</div>`;
+        } else {
+          if (rsi < 35 && macdHist > 0 && change > 0) alertMessage = `<div class="alert" style="color:limegreen;">BUY NOW</div>`;
+          else if (rsi > 65 && macdHist < 0 && change < 0) alertMessage = `<div class="alert" style="color:red;">SELL NOW</div>`;
+        }
+
+        const holdEstimate = estimateHoldTime(advice);
+
+        resultDiv.innerHTML = `
+          <div class="card" style="border: 2px solid ${color};">
+            <h2>${symbol}</h2>
+            <p>Price: $${price.toFixed(6)}</p>
+            <p>24h Change: <span style="color:${changeColor}; font-weight:bold;">${change.toFixed(2)}% ${arrow}</span></p>
+            <p>RSI: ${rsi.toFixed(2)}</p>
+            <p>MACD Histogram: ${macdHist.toFixed(4)}</p>
+            <p>Volume (24h): <span style="color:${volumeColor}; font-weight:bold;">${volumeDisplay}</span></p>
+            <div class="emoji">${emoji}</div>
+            <div class="advice" style="color:${color};">${advice}</div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%;background:${color};">${confidence}% Confidence</div></div>
+            ${alertMessage}
+            <div class="hold-sell-box">
+              <p><strong>Estimated Hold Time:</strong> ${holdEstimate}</p>
+              <p><strong>Sell When:</strong> RSI > 70, MACD flattens, volume weakens, or price drops.</p>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        resultDiv.innerHTML = `<div class="card"><p>Error: Could not fetch data for <strong>${token}</strong>.</p></div>`;
+        console.error(err);
+      }
+    }
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log("Service Worker Registered"))
+        .catch(err => console.error("Service Worker failed:", err));
+    }
+  </script>
+</body>
+</html>
