@@ -299,5 +299,30 @@
     }
   </script>
 
+  <!-- Service Worker Registration for Auto Update -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('Service Worker registered with scope:', registration.scope);
+            registration.onupdatefound = () => {
+              const newWorker = registration.installing;
+              newWorker.onstatechange = () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (confirm('New version available. Do you want to update?')) {
+                    newWorker.postMessage({ action: 'skipWaiting' });
+                    window.location.reload();
+                  }
+                }
+              };
+            };
+          })
+          .catch(error => {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
