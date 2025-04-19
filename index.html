@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crypto Buyer</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-  <meta name="theme-color" content="#00ccff">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,88 +12,169 @@
       margin: 0;
       padding: 1em;
     }
-    h1 { text-align: center; font-size: 1.8em; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; max-width: 500px; margin-left: auto; margin-right: auto; }
-    .card { background: #1e222d; padding: 1em; border-radius: 8px; margin: 0 auto 1em; max-width: 500px; }
-    input, button { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 4px; border: none; font-size: 1em; }
-    button { background: #00ccff; color: black; font-weight: bold; cursor: pointer; }
-    label { font-size: 0.9em; }
-    .emoji { font-size: 2em; text-align: center; }
-    .advice { font-size: 1.5em; text-align: center; font-weight: bold; }
-    .confidence-bar { background: #333; border-radius: 6px; overflow: hidden; height: 20px; margin-top: 10px; }
-    .confidence-fill { height: 100%; text-align: center; line-height: 20px; font-size: 12px; font-weight: bold; }
-    .alert { text-align: center; font-size: 1.4em; font-weight: bold; margin-top: 1em; }
-    .hold-sell-box { margin-top: 1.5em; padding-top: 1em; border-top: 1px solid #555; }
-    .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); }
-    .modal-content { background-color: #1e222d; color: white; margin: 10% auto; padding: 1em; border: 1px solid #888; border-radius: 10px; width: 90%; max-width: 500px; }
-    .close { float: right; font-size: 1.4em; font-weight: bold; cursor: pointer; color: #00ccff; }
+
+    h1 {
+      text-align: center;
+    }
+
+    .card {
+      background: #1e222d;
+      padding: 1em;
+      margin: 20px auto;
+      max-width: 500px;
+      border-radius: 8px;
+    }
+
+    .button {
+      background: #00ccff;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 10px;
+      margin-top: 10px;
+      display: block;
+      width: 100%;
+      text-align: center;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .emoji {
+      font-size: 2em;
+      text-align: center;
+    }
+
+    .advice {
+      font-size: 1.5em;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .confidence-bar {
+      background: #333;
+      border-radius: 6px;
+      overflow: hidden;
+      height: 20px;
+      margin-top: 10px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .alert {
+      text-align: center;
+      font-size: 1.4em;
+      font-weight: bold;
+      margin-top: 1em;
+    }
+
+    /* Modal styling */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-content {
+      background-color: #1e222d;
+      color: white;
+      margin: 10% auto;
+      padding: 1em;
+      border: 1px solid #888;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .close {
+      float: right;
+      font-size: 1.4em;
+      font-weight: bold;
+      cursor: pointer;
+      color: #00ccff;
+    }
   </style>
 </head>
 <body>
 
   <h1>Crypto Buyer</h1>
 
-  <div class="top-bar">
-    <label><input type="checkbox" id="aggressiveToggle" /> Aggressive Mode</label>
-    <button onclick="document.getElementById('modal').style.display='block'">Instructions</button>
-  </div>
-
   <div class="card">
-    <input type="text" id="tokenInput" placeholder="BTC, ETH, etc." />
-    <button onclick="analyse()">Analyse</button>
+    <label>Token: </label>
+    <input type="text" id="tokenInput" placeholder="Enter token symbol (e.g. BTC, ETH)" />
+    <button class="button" onclick="analyse()">Analyse</button>
+    <button class="button" onclick="document.getElementById('modal').style.display='block'">Instructions</button>
+    <button class="button" onclick="showReasoning()">View Reasoning</button> <!-- New View Reasoning Button -->
   </div>
 
   <div id="result"></div>
 
-  <!-- Instructions Modal -->
+  <!-- INSTRUCTIONS MODAL -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="document.getElementById('modal').style.display='none'">&times;</span>
       <h2>How to Use Crypto Buyer</h2>
-      <p>Enter a token symbol (e.g., BTC, ETH, SUI).</p>
-      <p>Tap Analyse to get a BUY or SELL signal.</p>
-      <p>Green = Buy, Red = Sell, Gray = Hold.</p>
+      <p>1. Enter a Token symbol like BTC, ETH, or SUI.</p>
+      <p>2. Tap "Analyse" to see a Buy, Hold, or Sell recommendation.</p>
+      <p>3. Green = Buy, Red = Sell, Gray = Hold.</p>
       <hr>
       <h3>Indicators</h3>
-      <p><strong>RSI:</strong> Oversold/overbought conditions.</p>
-      <p><strong>MACD:</strong> Momentum indicator.</p>
-      <p><strong>Confidence:</strong> How strong the signal is.</p>
+      <p><strong>RSI:</strong> Measures if the asset is oversold or overbought.</p>
+      <p><strong>MACD:</strong> A momentum indicator showing potential trends.</p>
+      <p><strong>Confidence:</strong> The system's confidence level in the recommendation.</p>
       <hr>
       <h3>Aggressive Mode</h3>
-      <p>Faster signals for quick trades:</p>
+      <p>Activate Aggressive Mode for quicker trades:</p>
       <ul>
-        <li>Buys earlier (RSI < 45)</li>
-        <li>Sells earlier (RSI > 60)</li>
+        <li>Buys at lower RSI levels (for early entry)</li>
+        <li>Sells at higher RSI levels (for faster exit)</li>
+        <li>Use for short-term, fast trades</li>
       </ul>
+      <p>Turn it off for safer, slower signals.</p>
+    </div>
+  </div>
+
+  <!-- Modal for Reasoning -->
+  <div id="reasoningModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeReasoning()">&times;</span>
+      <h2>Reasoning Behind the Decision</h2>
+      <p id="reasoningText">Loading...</p>
     </div>
   </div>
 
   <script>
-    function getVolumeThreshold(symbol) {
-      if (["BTC", "ETH"].includes(symbol)) return 5000000000;
-      if (["XRP", "DOGE", "ADA", "SUI"].includes(symbol)) return 50000000;
-      return 1000000;
+    let currentAnalysis = {};
+
+    // Function to show reasoning
+    function showReasoning() {
+      const reasoningText = getReasoningText(currentAnalysis);
+      document.getElementById('reasoningText').textContent = reasoningText;
+      document.getElementById('reasoningModal').style.display = 'block'; // Show the modal
     }
 
-    function estimateHoldTime(advice) {
-      if (advice.includes("Strong Buy")) return "6–24 hours";
-      if (advice.includes("Buy")) return "3–12 hours";
-      if (advice.includes("Hold")) return "1–3 hours";
-      if (advice.includes("Sell")) return "Exit ASAP";
-      return "N/A";
+    // Function to close the reasoning modal
+    function closeReasoning() {
+      document.getElementById('reasoningModal').style.display = 'none'; // Hide the modal
     }
 
+    // Function to fetch real-time data
     async function analyse() {
-      const token = document.getElementById("tokenInput").value.toUpperCase();
+      const token = document.getElementById('tokenInput').value.toUpperCase();
       const symbol = token + "USDT";
       const resultDiv = document.getElementById("result");
-      const aggressive = document.getElementById("aggressiveToggle").checked;
 
       try {
-        const [candleRes, tickerRes] = await Promise.all([
-          fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`),
-          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
-        ]);
+        const candleRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`);
+        const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
 
         if (!candleRes.ok || !tickerRes.ok) throw new Error("Invalid token");
 
@@ -107,9 +185,11 @@
         const period = 14;
         let gains = 0, losses = 0;
 
+        // Calculate average gain and loss for RSI
         for (let i = 1; i <= period; i++) {
           let change = closes[i] - closes[i - 1];
-          change >= 0 ? gains += change : losses -= change;
+          if (change >= 0) gains += change;
+          else losses -= change;
         }
 
         let avgGain = gains / period;
@@ -148,76 +228,76 @@
         const change = parseFloat(ticker.priceChangePercent);
         const volume = parseFloat(ticker.quoteVolume);
 
-        let score = 0;
-        if (change > 5) score += 3;
-        else if (change > 2) score += 2;
-        else if (change < -5) score -= 3;
-        else if (change < -2) score -= 2;
-
-        if (aggressive) {
-          if (rsi < 45) score += 2;
-          else if (rsi > 60) score -= 2;
-        } else {
-          if (rsi < 30) score += 2;
-          else if (rsi > 70) score -= 2;
-        }
-
-        if (macdHist > 0) score += 2;
-        else score -= 2;
-
+        // Sentiment scoring logic (positive, neutral, or negative)
         let advice = "", emoji = "", color = "";
-        if (score >= 7) { advice = "Strong Buy"; emoji = "🟢"; color = "limegreen"; }
-        else if (score >= 4) { advice = "Buy"; emoji = "🟩"; color = "#00ffcc"; }
-        else if (score >= -3) { advice = "Hold"; emoji = "⚪"; color = "gray"; }
-        else { advice = "Sell"; emoji = "🔴"; color = "red"; }
-
-        const confidence = Math.min(Math.abs(score) * 10 + 50, 95);
-        const arrow = change > 0 ? "↑" : change < 0 ? "↓" : "";
-        const changeColor = advice.includes("Sell") ? "red" : (change > 0 ? "limegreen" : "red");
-        const volumeColor = (volume > getVolumeThreshold(token) && !advice.includes("Sell")) ? "limegreen" : "red";
-        const volumeDisplay = `$${(volume / 1e6).toFixed(1)}M`;
-
-        let alertMessage = '';
-        if (aggressive) {
-          if (rsi < 45 && macdHist > 0 && change > 0) alertMessage = `<div class="alert" style="color:limegreen;">BUY NOW</div>`;
-          else if (rsi > 60 && macdHist < 0 && change < 0) alertMessage = `<div class="alert" style="color:red;">SELL NOW</div>`;
+        if (change > 0 && rsi < 70 && macdHist > 0) {
+          advice = "Buy"; emoji = "🟢"; color = "limegreen";
+        } else if (change < 0 && rsi > 70 && macdHist < 0) {
+          advice = "Sell"; emoji = "🔴"; color = "red";
         } else {
-          if (rsi < 35 && macdHist > 0 && change > 0) alertMessage = `<div class="alert" style="color:limegreen;">BUY NOW</div>`;
-          else if (rsi > 65 && macdHist < 0 && change < 0) alertMessage = `<div class="alert" style="color:red;">SELL NOW</div>`;
+          advice = "Hold"; emoji = "⚪"; color = "gray";
         }
 
-        const holdEstimate = estimateHoldTime(advice);
+        const confidence = Math.min(Math.abs(change) * 10 + 50, 95);
+        const arrow = change > 0 ? "↑" : change < 0 ? "↓" : "";
+
+        const changeColor = change < 0 ? "red" : "limegreen";
 
         resultDiv.innerHTML = `
           <div class="card" style="border: 2px solid ${color};">
             <h2>${symbol}</h2>
             <p>Price: $${price.toFixed(6)}</p>
-            <p>24h Change: <span style="color:${changeColor}; font-weight:bold;">${change.toFixed(2)}% ${arrow}</span></p>
+            <p>24h Change: <span style="color:${changeColor}; font-weight:bold;">
+              ${change.toFixed(2)}% ${arrow}</span></p>
             <p>RSI: ${rsi.toFixed(2)}</p>
             <p>MACD Histogram: ${macdHist.toFixed(4)}</p>
-            <p>Volume (24h): <span style="color:${volumeColor}; font-weight:bold;">${volumeDisplay}</span></p>
+            <p>Volume (24h): <span style="color:${volume > 1000000 ? 'limegreen' : 'red'}; font-weight:bold;">
+              $${(volume / 1000000).toFixed(1)}M</span></p>
             <div class="emoji">${emoji}</div>
             <div class="advice" style="color:${color};">${advice}</div>
-            <div class="confidence-bar"><div class="confidence-fill" style="width:${confidence}%;background:${color};">${confidence}% Confidence</div></div>
-            ${alertMessage}
-            <div class="hold-sell-box">
-              <p><strong>Estimated Hold Time:</strong> ${holdEstimate}</p>
-              <p><strong>Sell When:</strong> RSI > 70, MACD flattens, volume weakens, or price drops.</p>
+            <div class="confidence-bar">
+              <div class="confidence-fill" style="width:${confidence}%;background:${color};">
+                ${confidence}% Confidence
+              </div>
             </div>
           </div>
         `;
+
+        currentAnalysis = { price, change, rsi, macdHist, volume, advice, emoji, confidence, color }; // Store analysis for reasoning
       } catch (err) {
         resultDiv.innerHTML = `<div class="card"><p>Error: Could not fetch data for <strong>${token}</strong>.</p></div>`;
         console.error(err);
       }
     }
 
-    // PWA Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log("Service Worker Registered"))
-        .catch(err => console.error("Service Worker failed:", err));
+    // Function to generate reasoning text based on analysis
+    function getReasoningText(analysis) {
+      if (!analysis) return "No analysis available yet.";
+      
+      let reasoningText = "This is ";
+      if (analysis.advice === "Buy") {
+        reasoningText += "a buy opportunity because:\n";
+        reasoningText += `1. Price is rising (${analysis.change.toFixed(2)}%)\n`;
+        reasoningText += `2. RSI is ${analysis.rsi.toFixed(2)}, indicating strength\n`;
+        reasoningText += `3. MACD histogram is positive (${analysis.macdHist.toFixed(4)})\n`;
+      } else if (analysis.advice === "Sell") {
+        reasoningText += "not a buy opportunity because:\n";
+        reasoningText += `1. Price is dropping (${analysis.change.toFixed(2)}%)\n`;
+        reasoningText += `2. RSI is low (${analysis.rsi.toFixed(2)})\n`;
+        reasoningText += `3. MACD is negative (${analysis.macdHist.toFixed(4)})\n`;
+      } else {
+        reasoningText += "a hold opportunity because:\n";
+        reasoningText += `1. Price is stable (${analysis.change.toFixed(2)}%)\n`;
+        reasoningText += `2. RSI is in neutral range (${analysis.rsi.toFixed(2)})\n`;
+        reasoningText += `3. MACD is neutral (${analysis.macdHist.toFixed(4)})\n`;
+      }
+      
+      reasoningText += `4. Volume is ${analysis.volume > 1000000 ? 'high' : 'low'}, which supports the trend.\n`;
+      reasoningText += `5. The system gives a '${analysis.advice}' signal with ${analysis.confidence}% confidence.`;
+
+      return reasoningText;
     }
   </script>
+
 </body>
 </html>
