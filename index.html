@@ -162,6 +162,7 @@
       <p>1. Enter the ticker symbol (e.g. BTC, ETH).</p>
       <p>2. Tap "Analyse" to get real-time data and a Buy, Hold, or Sell recommendation.</p>
       <p>3. Enter your buy price to track gains or losses.</p>
+      <p><strong>AI Forecast Info:</strong> This app uses live market data to estimate short-term price changes based on indicators like RSI, MACD, and Bollinger Bands. The AI forecast shows the predicted price, expected % change, and an estimated timeframe. It’s not a machine learning model, but a rule-based forecast updated in real-time from Binance data.</p>
     </div>
   </div>
 
@@ -273,14 +274,30 @@
         document.getElementById("recommendationDot").textContent = "●";
         document.getElementById("recommendationDot").style.color =
           confidence >= 70 ? "green" : confidence >= 50 ? "orange" : "red";
-
-        // AI Forecast
+        
+             // AI Forecast with estimated timeframe
+        // AI Forecast with estimated timeframe
+        // AI Forecast with estimated timeframe
         const forecastChange = (rsi < 30 || price < bb.lower) ? 4.5 : (macdHist > 0 ? 2.2 : -1.7);
         const predictedPrice = price * (1 + forecastChange / 100);
         const forecastColor = forecastChange > 1 ? "lightgreen" : forecastChange < -1 ? "red" : "lightgrey";
-        document.getElementById("aiForecast").innerHTML =
-          `Predicted Price: $${predictedPrice.toFixed(4)}<br/>Expected Change: <span style="color:${forecastColor}; font-weight:bold;">${forecastChange > 0 ? '+' : ''}${forecastChange.toFixed(2)}%</span>`;
 
+        // Estimate timeframe based on signals
+        let estimatedTimeframe = "Uncertain";
+        if (macdHist > 0 || recentVol > avgVol * 1.5) {
+          estimatedTimeframe = "Within a few hours";
+        } else if (rsi < 30 || price < bb.lower) {
+          estimatedTimeframe = "Within 1–2 days";
+        }
+
+        // Inject into the AI forecast card
+        document.getElementById("aiForecast").innerHTML =
+          `Predicted Price: $${predictedPrice.toFixed(4)}<br/>
+           Expected Change: <span style="color:${forecastColor}; font-weight:bold;">
+           ${forecastChange > 0 ? '+' : ''}${forecastChange.toFixed(2)}%</span><br/>
+           Estimated Timeframe: <span style="color:lightgrey; font-weight:bold;">${estimatedTimeframe}</span>`;
+
+        // Recommendation text
         let recommendationText =
           confidence >= 70 ? "Recommendation: Buy" :
           confidence >= 50 ? "Recommendation: Hold" : "Recommendation: Sell";
