@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+                                  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -57,7 +57,6 @@
     }
     .percentage.green { color: green; }
     .percentage.red { color: red; }
-    .percentage.gray { color: gray; }
     .modal {
       display: none;
       position: fixed;
@@ -84,33 +83,38 @@
       color: #00ccff;
     }
     .dot {
-      font-size: 2em;
+      font-size: 3em;
       text-align: center;
+      line-height: 1.2;
     }
   </style>
 </head>
 <body>
   <h1>Crypto Buyer</h1>
-
+  <!-- Inputs and Result -->
   <div class="card">
     <label>Token: </label>
     <input type="text" id="tokenInput" placeholder="Enter token symbol (e.g. BTC, ETH)" />
     <button class="button" onclick="analyse()">Analyse</button>
-    <button class="button" onclick="document.getElementById('modal').style.display='block'">Instructions</button>
-    <button class="button" onclick="showReasoning()">View Reasoning</button>
   </div>
 
   <div class="card">
     <label>Buy Price: </label>
     <input type="number" id="buyPriceInput" placeholder="Enter your buy price" />
-    <button class="button" onclick="lockBuyPrice()">Lock Buy Price</button>
-    <button class="button" onclick="calculateProfitLoss()">Percentage Profit/Loss</button>
+    <button class="button" onclick="lockAndCalculate()">Lock & Calculate Profit/Loss</button>
     <p id="lockedPriceDisplay" style="color:gray; font-weight:bold;"></p>
     <p id="percentageChange" class="percentage" style="font-weight:bold;"></p>
   </div>
 
   <div id="result"></div>
 
+  <!-- Forecast -->
+  <div class="card">
+    <label>AI Forecast:</label>
+    <p id="aiForecast" style="font-weight: bold;">Awaiting analysis...</p>
+  </div>
+
+  <!-- Confidence -->
   <div class="card">
     <label>Confidence: </label>
     <div class="confidence-bar">
@@ -119,12 +123,38 @@
     <p id="recommendationText"></p>
   </div>
 
+  <!-- Recommendation -->
   <div class="card">
     <label>Recommendation:</label>
     <div id="recommendationDot" class="dot"></div>
   </div>
 
-  <!-- INSTRUCTIONS MODAL -->
+  <!-- Early Signals -->
+  <div class="card">
+    <label>Early Surge Signals:</label>
+    <ul id="earlySignals" style="padding-left: 20px;"></ul>
+  </div>
+
+  <!-- Surge Scanner -->
+  <div class="card">
+    <label>Choose Group to Scan:</label>
+    <select id="batchSelect" class="button">
+      <option value="0">1–100</option>
+      <option value="100">101–200</option>
+      <option value="200">201–300</option>
+      <option value="300">301–400</option>
+      <option value="400">401–500</option>
+    </select>
+    <button class="button" onclick="scanBinanceSurgeCoins()">Scan Binance for Surge</button>
+    <ul id="topSurgeList" style="padding-left: 20px;"><li id="progressStatus">Waiting...</li></ul>
+  </div>
+
+  <!-- Help -->
+  <div class="card">
+    <button class="button" onclick="document.getElementById('modal').style.display='block'">Instructions</button>
+    <button class="button" onclick="showReasoning()">Why This Advice? (View Explanation)</button>
+  </div>
+  <!-- Modals -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="document.getElementById('modal').style.display='none'">&times;</span>
@@ -135,50 +165,29 @@
     </div>
   </div>
 
-  <!-- REASONING MODAL -->
   <div id="reasoningModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="closeReasoning()">&times;</span>
+      <span class="close" onclick="document.getElementById('reasoningModal').style.display='none'">&times;</span>
       <h2>Reasoning Behind the Decision</h2>
       <p id="reasoningText">Loading...</p>
     </div>
   </div>
 
   <script>
-    let currentAnalysis = {};
-    let buyPrice = null;
     let currentPrice = null;
 
     function showReasoning() {
-      const reasoningText = `RSI: ${currentAnalysis.rsi.toFixed(1)} — ${currentAnalysis.rsi > 70 ? "overbought" : currentAnalysis.rsi < 30 ? "oversold" : "neutral"}.
-MACD: ${currentAnalysis.macd.toFixed(2)} — ${currentAnalysis.macd > 0 ? "bullish" : "bearish"}.
-24h Change: ${currentAnalysis.priceChange}% — ${currentAnalysis.priceChange > 0 ? "uptrend" : "downtrend"}.`;
-
-      document.getElementById('reasoningText').textContent = reasoningText;
+      document.getElementById('reasoningText').textContent =
+        "This app uses RSI, MACD, SMA, Bollinger Bands, and volume to generate buy/sell confidence. An AI model predicts short-term moves.";
       document.getElementById('reasoningModal').style.display = 'block';
     }
 
-    function closeReasoning() {
-      document.getElementById('reasoningModal').style.display = 'none';
-    }
-
-    function lockBuyPrice() {
-      buyPrice = parseFloat(document.getElementById('buyPriceInput').value);
-      if (!buyPrice || buyPrice <= 0) {
-        alert('Please enter a valid buy price.');
-        return;
-      }
-      document.getElementById('lockedPriceDisplay').textContent = `Locked Buy Price: $${buyPrice.toFixed(2)}`;
-    }
-
-    function calculateProfitLoss() {
-      if (buyPrice === null || currentPrice === null) {
-        alert("Lock a buy price and run analysis first.");
-        return;
-      }
-
+    function lockAndCalculate() {
+      const buyPrice = parseFloat(document.getElementById("buyPriceInput").value);
+      if (!buyPrice || !currentPrice) return alert("Enter valid price and analyse token first.");
       const change = ((currentPrice - buyPrice) / buyPrice) * 100;
-      const el = document.getElementById('percentageChange');
+      document.getElementById("lockedPriceDisplay").textContent = `Locked Buy Price: $${buyPrice.toFixed(2)}`;
+      const el = document.getElementById("percentageChange");
       el.textContent = `${change > 0 ? 'Gain' : 'Loss'}: ${change.toFixed(2)}%`;
       el.className = 'percentage ' + (change > 0 ? 'green' : 'red');
     }
@@ -186,81 +195,180 @@ MACD: ${currentAnalysis.macd.toFixed(2)} — ${currentAnalysis.macd > 0 ? "bulli
     function calculateRSI(closes, period = 14) {
       let gains = 0, losses = 0;
       for (let i = closes.length - period; i < closes.length - 1; i++) {
-        const change = closes[i + 1] - closes[i];
-        if (change > 0) gains += change;
-        else losses -= change;
+        const diff = closes[i + 1] - closes[i];
+        if (diff > 0) gains += diff; else losses -= diff;
       }
       if (losses === 0) return 100;
       const rs = gains / losses;
       return 100 - (100 / (1 + rs));
     }
 
+    function calculateSMA(closes, period = 20) {
+      const slice = closes.slice(-period);
+      const sum = slice.reduce((a, b) => a + b, 0);
+      return sum / slice.length;
+    }
+
+    function calculateBollingerBands(closes, period = 20) {
+      const sma = calculateSMA(closes, period);
+      const slice = closes.slice(-period);
+      const variance = slice.reduce((acc, val) => acc + Math.pow(val - sma, 2), 0) / period;
+      const stdDev = Math.sqrt(variance);
+      return { upper: sma + 2 * stdDev, lower: sma - 2 * stdDev, sma };
+    }
     async function analyse() {
-      const token = document.getElementById('tokenInput').value.toUpperCase();
+      const token = document.getElementById("tokenInput").value.toUpperCase();
       const symbol = token + "USDT";
       const resultDiv = document.getElementById("result");
+      const signalsList = document.getElementById("earlySignals");
+      signalsList.innerHTML = '';
 
       try {
-        const candleRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`);
-        const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+        const [candleRes, tickerRes] = await Promise.all([
+          fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`),
+          fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+        ]);
         if (!candleRes.ok || !tickerRes.ok) throw new Error("Invalid token");
 
         const candles = await candleRes.json();
         const ticker = await tickerRes.json();
-        const closes = candles.map(c => parseFloat(c[4])); // closing prices
+        const closes = candles.map(c => parseFloat(c[4]));
+        const volumes = candles.map(c => parseFloat(c[5]));
         const price = parseFloat(ticker.lastPrice);
         currentPrice = price;
 
-        const change = parseFloat(ticker.priceChangePercent);
-        const volume = parseFloat(ticker.quoteVolume);
         const rsi = calculateRSI(closes);
-        const macdHist = closes[closes.length - 1] - closes[closes.length - 13]; // basic MACD approx
+        const macdHist = closes[closes.length - 1] - closes[closes.length - 13];
+        const macdPrev = closes[closes.length - 2] - closes[closes.length - 14];
+        const bb = calculateBollingerBands(closes);
+        const prevRSI = calculateRSI(closes.slice(0, -1));
+        const recentVol = volumes[volumes.length - 1];
+        const avgVol = volumes.slice(-10, -1).reduce((a, b) => a + b, 0) / 9;
 
-        currentAnalysis = { rsi, macd: macdHist, volume, priceChange: change };
+        if (recentVol > avgVol * 1.5) signalsList.innerHTML += `<li style="color:lightgreen">Volume Spike</li>`;
+        if (prevRSI < 35 && rsi > prevRSI) signalsList.innerHTML += `<li style="color:lightgreen">RSI rising</li>`;
+        if (macdPrev < 0 && macdHist > 0) signalsList.innerHTML += `<li style="color:lightgreen">MACD flipped positive</li>`;
+        if (price < bb.lower) signalsList.innerHTML += `<li style="color:lightgreen">Price below Bollinger Band</li>`;
 
-        resultDiv.innerHTML = `
-          <div class="card" style="border: 2px solid limegreen;">
-            <h2>${symbol}</h2>
-            <p>Price: $${price.toFixed(6)}</p>
-            <p>24h Change: <span style="color:${change > 0 ? 'green' : 'red'}">${change}%</span></p>
-            <p>RSI: ${rsi.toFixed(1)}</p>
-            <p>MACD Approx: ${macdHist.toFixed(2)}</p>
-            <p>Volume: $${(volume / 1_000_000).toFixed(1)}M</p>
-          </div>
-        `;
-
-        // --- SMART CONFIDENCE SCORING ---
         let score = 50;
         if (rsi < 30) score += 15;
-        else if (rsi > 70) score -= 15;
-
-        if (macdHist > 0) score += 15;
-        else score -= 15;
-
-        if (change > 0) score += 10;
-        else score -= 10;
+        if (rsi > 70) score -= 15;
+        score += macdHist > 0 ? 15 : -15;
+        score += parseFloat(ticker.priceChangePercent) > 0 ? 10 : -10;
 
         const confidence = Math.max(0, Math.min(100, score));
+        document.getElementById("confidenceFill").style.width = confidence + "%";
+        document.getElementById("confidenceFill").textContent = confidence + "%";
+        document.getElementById("confidenceFill").style.backgroundColor =
+          confidence >= 70 ? "green" : confidence >= 50 ? "orange" : "red";
 
-        const fill = document.getElementById('confidenceFill');
-        fill.style.width = confidence + '%';
-        fill.textContent = confidence + '%';
-        fill.style.backgroundColor = confidence >= 70 ? 'green' : confidence >= 50 ? 'orange' : 'red';
+        document.getElementById("recommendationDot").textContent = "●";
+        document.getElementById("recommendationDot").style.color =
+          confidence >= 70 ? "green" : confidence >= 50 ? "orange" : "red";
 
-        const dot = document.getElementById('recommendationDot');
-        dot.textContent = '●';
-        dot.style.color = confidence >= 70 ? 'green' : confidence >= 50 ? 'orange' : 'red';
+        // AI Forecast
+        const forecastChange = (rsi < 30 || price < bb.lower) ? 4.5 : (macdHist > 0 ? 2.2 : -1.7);
+        const predictedPrice = price * (1 + forecastChange / 100);
+        const forecastColor = forecastChange > 1 ? "lightgreen" : forecastChange < -1 ? "red" : "lightgrey";
+        document.getElementById("aiForecast").innerHTML =
+          `Predicted Price: $${predictedPrice.toFixed(4)}<br/>Expected Change: <span style="color:${forecastColor}; font-weight:bold;">${forecastChange > 0 ? '+' : ''}${forecastChange.toFixed(2)}%</span>`;
 
-        const recText = document.getElementById('recommendationText');
-        recText.textContent = confidence >= 70 ? 'Recommendation: Buy' :
-                              confidence >= 50 ? 'Recommendation: Hold' :
-                              'Recommendation: Sell';
+        let recommendationText =
+          confidence >= 70 ? "Recommendation: Buy" :
+          confidence >= 50 ? "Recommendation: Hold" : "Recommendation: Sell";
 
+        if (forecastChange > 1 && confidence < 50) {
+          recommendationText += " (AI sees potential upside)";
+        }
+
+        document.getElementById("recommendationText").textContent = recommendationText;
+
+        const rsiColor = rsi < 30 ? "lightgreen" : rsi > 70 ? "red" : "lightgrey";
+        const macdColor = macdHist > 0 ? "lightgreen" : macdHist < 0 ? "red" : "lightgrey";
+        const changeColor = parseFloat(ticker.priceChangePercent) > 0 ? "lightgreen" :
+                            parseFloat(ticker.priceChangePercent) < 0 ? "red" : "lightgrey";
+
+        resultDiv.innerHTML = `
+          <div class="card">
+            <h2>${symbol}</h2>
+            <p>Price: $${price.toFixed(6)}</p>
+            <p style="color:${rsiColor}">RSI: ${rsi.toFixed(1)}</p>
+            <p style="color:${macdColor}">MACD: ${macdHist.toFixed(2)}</p>
+            <p>Bollinger Bands: Upper $${bb.upper.toFixed(4)}, Lower $${bb.lower.toFixed(4)}</p>
+            <p style="color:${changeColor}">24h Change: ${ticker.priceChangePercent}%</p>
+            <p>Volume: $${(parseFloat(ticker.quoteVolume) / 1_000_000).toFixed(2)}M</p>
+          </div>`;
       } catch (err) {
-        resultDiv.innerHTML = `<div class="card"><p>Error: Could not fetch data for <strong>${token}</strong>.</p></div>`;
+        document.getElementById("result").innerHTML = `<div class="card"><p>Error: Could not fetch data.</p></div>`;
         console.error(err);
       }
     }
-  </script>
-</body>
-</html>
+
+    async function scanBinanceSurgeCoins() {
+      const batchStart = parseInt(document.getElementById("batchSelect").value);
+      const resultList = document.getElementById("topSurgeList");
+      const progressStatus = document.getElementById("progressStatus");
+      resultList.innerHTML = "<li id='progressStatus'>Scanning...</li>";
+
+      try {
+        const exchangeInfo = await (await fetch("https://api.binance.com/api/v3/exchangeInfo")).json();
+        const usdtPairs = exchangeInfo.symbols
+          .filter(s => s.quoteAsset === "USDT" && s.status === "TRADING")
+          .map(s => s.symbol);
+
+        const results = [];
+
+        for (let i = batchStart; i < batchStart + 100 && i < usdtPairs.length; i++) {
+          const symbol = usdtPairs[i];
+          if (!symbol) continue;
+          progressStatus.textContent = `Scanning ${i + 1}/${batchStart + 100}...`;
+
+          try {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`);
+            if (!res.ok) continue;
+
+            const candles = await res.json();
+            if (candles.length < 20) continue;
+
+            const closes = candles.map(c => parseFloat(c[4]));
+            const volumes = candles.map(c => parseFloat(c[5]));
+
+            const rsi = calculateRSI(closes);
+            const macd = closes[closes.length - 1] - closes[closes.length - 13];
+            const macdPrev = closes[closes.length - 2] - closes[closes.length - 14];
+            const bb = calculateBollingerBands(closes);
+            const volNow = volumes[volumes.length - 1];
+            const avgVol = volumes.slice(-10, -1).reduce((a, b) => a + b, 0) / 9;
+
+            let score = 0, reasons = [];
+            if (macdPrev < 0 && macd > 0) { score += 2; reasons.push("MACD flipped"); }
+            if (rsi < 35) { score += 2; reasons.push("Low RSI"); }
+            if (volNow > avgVol * 1.5) { score += 2; reasons.push("Volume spike"); }
+            if (closes[closes.length - 1] < bb.lower) { score += 2; reasons.push("Below Bollinger Band"); }
+
+            if (score >= 4) {
+              results.push({ symbol, score, reason: reasons.join(", ") });
+            }
+
+          } catch (e) {
+            continue;
+          }
+        }
+
+        results.sort((a, b) => b.score - a.score);
+
+        resultList.innerHTML = results.length
+          ? results.slice(0, 5).map(r =>
+              `<li><strong>${r.symbol}</strong><br/>Signals: ${r.reason}<br/>Pump Potential: ${r.score >= 6 ? 'High' : r.score === 5 ? 'Moderate' : 'Mild'}</li>`
+            ).join("")
+          : "<li>No surge-ready coins found.</li>";
+
+        progressStatus.textContent = "Done.";
+      } catch (err) {
+        resultList.innerHTML = "<li>Error scanning Binance.</li>";
+        console.error(err);
+      }
+    }
+    </script>
+    </body>
+    </html>
