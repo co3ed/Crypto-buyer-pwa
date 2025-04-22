@@ -1,4 +1,4 @@
-                                  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -219,6 +219,14 @@
     async function analyse() {
       const token = document.getElementById("tokenInput").value.toUpperCase();
       const symbol = token + "USDT";
+      // Reset UI so it refreshes cleanly each time
+      document.getElementById("result").innerHTML = "";
+      document.getElementById("aiForecast").textContent = "Awaiting analysis...";
+      document.getElementById("confidenceFill").style.width = "0%";
+      document.getElementById("confidenceFill").textContent = "0%";
+      document.getElementById("recommendationDot").textContent = "";
+      document.getElementById("recommendationText").textContent = "";
+      document.getElementById("earlySignals").innerHTML = "";
       const resultDiv = document.getElementById("result");
       const signalsList = document.getElementById("earlySignals");
       signalsList.innerHTML = '';
@@ -372,3 +380,4 @@
     </script>
     </body>
     </html>
+  
